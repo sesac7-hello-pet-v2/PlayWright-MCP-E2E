@@ -25,7 +25,7 @@ export default defineConfig({
     ['junit', {outputFile: 'test-results/junit.xml'}],   // Jenkins/Azure DevOps용
     ['html', {
       open: 'never',               // CI에서 자동으로 열지 않음
-      outputFolder: 'test-results/html-report'
+      outputFolder: 'playwright-report'  // GitHub Pages 배포용 경로
     }],
   ],
 
