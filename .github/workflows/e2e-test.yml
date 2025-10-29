@@ -570,41 +570,39 @@ jobs:
             echo "✅ .gitignore에서 docs/ 제거"
           fi
 
-          # release 브랜치 준비
-          echo "📥 release 브랜치 준비 중..."
-          git fetch origin release || echo "release 브랜치가 없으면 새로 생성됩니다"
+          # origin/release 브랜치 완전 삭제 및 재생성
+          echo "🗑️ origin/release 브랜치 삭제 중..."
+          git push origin --delete release || echo "⚠️ origin/release 브랜치가 없거나 삭제 실패 (계속 진행)"
 
-          # 기존 변경사항 스테이징 (덮어쓰기 방지)
-          if [ -f "docs/index.html" ] || [ -f "docs/report.html" ]; then
-            echo "💾 기존 docs 파일들 임시 저장"
-            git add docs/ || true
-            git stash push -m "Temporary save docs before branch switch" || true
-          fi
+          # 로컬 release 브랜치도 삭제
+          git branch -D release 2>/dev/null || echo "⚠️ 로컬 release 브랜치 없음"
 
-          # release 브랜치로 체크아웃 (없으면 생성)
-          if git show-ref --verify --quiet refs/remotes/origin/release; then
-            echo "🔄 기존 release 브랜치로 체크아웃"
-            git checkout -B release origin/release
+          # origin/main에서 새로운 release 브랜치 생성
+          echo "🆕 origin/main에서 새로운 release 브랜치 생성"
+          git fetch origin main
+          git checkout -b release origin/main
+
+          # docs 폴더 완전 정리 (깨끗한 시작)
+          echo "🧹 기존 docs 폴더 삭제"
+          rm -rf docs/
+
+          # 테스트 결과 복사 (아티팩트에서)
+          echo "📋 테스트 결과 복사 중..."
+          mkdir -p docs
+
+          if [ -d "artifacts/playwright-report" ]; then
+            echo "✅ Playwright 리포트 발견"
+            cp -r artifacts/playwright-report/* docs/
+          elif [ -d "artifacts" ] && [ "$(ls -A artifacts)" ]; then
+            echo "✅ 아티팩트 파일들 발견"
+            cp -r artifacts/* docs/
           else
-            echo "🆕 새로운 release 브랜치 생성"
-            git checkout -b release
+            echo "⚠️ 아티팩트 없음, 기본 리포트 생성"
+            echo "<h1>테스트 실패</h1><p>테스트 아티팩트를 찾을 수 없습니다.</p>" > docs/index.html
           fi
 
-          # 스테이시된 변경사항 복원 (있다면)
-          if git stash list | grep -q "Temporary save docs"; then
-            echo "📂 임시 저장된 docs 복원"
-            git stash pop || echo "⚠️ stash pop 실패, 계속 진행"
-          fi
-
-          # docs 폴더 존재 확인 후 추가
-          if [ -d "docs" ] && [ "$(ls -A docs)" ]; then
-            git add docs/
-          else
-            echo "⚠️ docs 폴더가 비어있거나 존재하지 않음"
-            mkdir -p docs
-            echo "<h1>테스트 실패</h1><p>테스트 실행 중 오류가 발생했습니다.</p>" > docs/index.html
-            git add docs/
-          fi
+          # docs 폴더 추가 (항상 실행)
+          git add docs/
 
           if git diff --staged --quiet; then
             echo "📝 변경사항 없음, 커밋 건너뛰기"
@@ -617,30 +615,14 @@ jobs:
               exit 1
             }
 
-            # release 브랜치로 푸시 (충돌 해결)
+            # release 브랜치로 푸시 (새로 생성된 브랜치이므로 충돌 없음)
             echo "📤 release 브랜치로 푸시 중..."
-            for i in {1..3}; do
-              if git push origin release; then
-                echo "✅ release 브랜치에 테스트 리포트 푸시 완료"
-                break
-              else
-                echo "⚠️ 푸시 실패, 재시도 $i/3"
-                if [ $i -lt 3 ]; then
-                  # 최신 변경사항 가져오기
-                  git fetch origin release
-
-                  # 충돌 없이 덮어쓰기 (테스트 리포트는 항상 최신으로)
-                  git reset --soft origin/release
-                  git add docs/
-                  git commit -m "🤖 E2E 테스트 리포트 업데이트 (덮어쓰기)"
-
-                  sleep 2
-                else
-                  echo "❌ 푸시 최종 실패"
-                  exit 1
-                fi
-              fi
-            done
+            if git push origin release; then
+              echo "✅ release 브랜치에 테스트 리포트 푸시 완료"
+            else
+              echo "❌ 푸시 실패"
+              exit 1
+            fi
           fi
 
       - name: 📢 Deployment notification
