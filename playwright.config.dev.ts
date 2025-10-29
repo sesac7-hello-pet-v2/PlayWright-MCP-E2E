@@ -43,11 +43,6 @@ export default defineConfig({
     // 🔧 개발 편의 설정
     launchOptions: {
       slowMo: 300,                  // 액션 간 300ms 지연 (디버깅 용이)
-      args: [
-        '--auto-open-devtools-for-tabs', // 개발자 도구 자동 열기 (새로운 방식)
-        '--disable-web-security',   // CORS 제한 해제
-        '--disable-features=TranslateUI' // 번역 팝업 비활성화
-      ]
     }
   },
 });

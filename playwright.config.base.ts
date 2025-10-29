@@ -17,9 +17,6 @@ export const baseConfig = defineConfig({
     // 🌐 기본 URL 설정
     baseURL: 'https://hello-pet.my', // Hello Pet 배포 환경 URL
 
-    // 🖥️ 브라우저 뷰포트 설정
-    viewport: {width: 1280, height: 720}, // 데스크톱 표준 해상도
-
     // 🌍 지역화 설정
     locale: 'ko-KR',                // 한국어 설정
     timezoneId: 'Asia/Seoul',       // 한국 시간대
@@ -28,12 +25,13 @@ export const baseConfig = defineConfig({
   // 🌐 브라우저 프로젝트 설정
   projects: [
     {
-      name: 'chromium',             // 기본 Chromium 브라우저
+      name: 'chromium',             // 기본 Chromium 브라우저 (개발용)
       use: {...devices['Desktop Chrome']},
     },
-    {
-      name: 'Google Chrome',        // 실제 Chrome 브라우저 (더 실제 환경과 유사)
-      use: {...devices['Desktop Chrome'], channel: 'chrome'},
-    }
+    // Google Chrome은 CI 환경에서만 사용
+    // {
+    //   name: 'Google Chrome',        // 실제 Chrome 브라우저 (더 실제 환경과 유사)
+    //   use: {...devices['Desktop Chrome'], channel: 'chrome'},
+    // }
   ],
 });
