@@ -52,17 +52,19 @@ main_menu() {
         echo "  2. 기능 테스트 (예정)"
         echo "  3. 네비게이션 테스트"
         echo "  4. 테스트 옵션 선택"
+        echo "  5. 테스트 보고서 보기"
         echo ""
         echo "  0. 종료"
         echo ""
 
-        read -p "숫자를 입력하세요 (0-4): " choice
+        read -p "숫자를 입력하세요 (0-5): " choice
 
         case $choice in
             1) all_tests_menu ;;
             2) echo -e "${YELLOW}기능 테스트는 아직 구현되지 않았습니다.${NC}"; sleep 2 ;;
             3) navigation_menu ;;
             4) options_menu ;;
+            5) run_test "테스트 보고서 보기" "npm run report" ;;
             0) echo -e "${GREEN}👋 안녕히 가세요!${NC}"; exit 0 ;;
             *) echo -e "${RED}❌ 잘못된 선택입니다.${NC}"; sleep 1 ;;
         esac
