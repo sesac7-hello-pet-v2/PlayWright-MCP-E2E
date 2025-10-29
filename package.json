@@ -1,0 +1,31 @@
+{
+  "name": "test",
+  "version": "1.0.0",
+  "description": "```\r test/\r ├── README.md                     # 이 파일 - 전체 테스트 가이드\r ├── auth/                         # 인증 관련 테스트\r ├── feed/                         # 피드 핵심 기능 테스트\r │   └── comment/                  # 댓글 기능 세부 테스트\r ├── navigation/                   # 페이지 네비게이션 테스트\r └── util/                         # 테스트 유틸리티 및 리소스\r     └── feed_image/               # 테스트용 이미지 파일들 (17개)\r ```",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:dev": "playwright test --config=playwright.config.dev.ts",
+    "test:ci": "playwright test --config=playwright.config.ci.ts",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sesac7-hello-pet-v2/PlayWright-MCP-E2E.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/sesac7-hello-pet-v2/PlayWright-MCP-E2E/issues"
+  },
+  "homepage": "https://github.com/sesac7-hello-pet-v2/PlayWright-MCP-E2E#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@types/node": "^24.9.2"
+  }
+}
