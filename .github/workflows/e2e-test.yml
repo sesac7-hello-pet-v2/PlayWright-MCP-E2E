@@ -394,6 +394,7 @@ jobs:
             echo "📝 변경사항 없음, 커밋 건너뛰기"
           else
             COMMIT_MESSAGE="🤖 E2E 테스트 리포트 업데이트
+
 📊 테스트 실행 정보:
   - 실행자: ${{ github.event.inputs.triggered_by || github.actor }}
   - 설정: ${{ github.event.inputs.test_config || 'fast' }}
@@ -402,22 +403,23 @@ jobs:
 
   🤖 Generated with GitHub Actions
 Co-Authored-By: GitHub Actions <noreply@github.com>"
-                  
-                  git commit -m "$COMMIT_MESSAGE"
-                  git push
-                  echo "✅ 테스트 리포트 커밋 및 푸시 완료"
-                  fi
-                  - name: 📢 Deployment notification
-                  if: always()
-                  run: |
-                    REPO_URL="${{ github.server_url }}/${{ github.repository }}"
-                    PAGES_URL="${REPO_URL}/tree/${{ github.ref_name }}/docs"
-                    
-                    if [ "${{ job.status }}" = "success" ]; then
-                      echo "🎉 E2E 테스트 리포트가 성공적으로 배포되었습니다!"
-                      echo "📊 리포트 확인: ${PAGES_URL}"
-                      echo "👤 실행자: ${{ github.event.inputs.triggered_by || github.actor }}"
-                    else
-                      echo "❌ 배포 중 문제가 발생했습니다."
-                      echo "🔍 로그 확인: ${REPO_URL}/actions/runs/${{ github.run_id }}"
-                    fi
+  
+  git commit -m "$COMMIT_MESSAGE"
+  git push
+  echo "✅ 테스트 리포트 커밋 및 푸시 완료"
+  fi
+
+  - name: 📢 Deployment notification
+    if: always()
+    run: |
+      REPO_URL="${{ github.server_url }}/${{ github.repository }}"
+      PAGES_URL="${REPO_URL}/tree/${{ github.ref_name }}/docs"
+      
+      if [ "${{ job.status }}" = "success" ]; then
+        echo "🎉 E2E 테스트 리포트가 성공적으로 배포되었습니다!"
+        echo "📊 리포트 확인: ${PAGES_URL}"
+        echo "👤 실행자: ${{ github.event.inputs.triggered_by || github.actor }}"
+      else
+        echo "❌ 배포 중 문제가 발생했습니다."
+        echo "🔍 로그 확인: ${REPO_URL}/actions/runs/${{ github.run_id }}"
+      fi
