@@ -8,9 +8,9 @@ import {baseConfig} from './playwright.config.base';
 export default defineConfig({
   ...baseConfig,
 
-  // 🔄 병렬 실행 설정 (CI환경)
-  fullyParallel: false,             // 순차 실행으로 안정성 확보
-  workers: 1,                       // 1개 워커로 서버 부하 최소화
+  // 🔄 병렬 실행 설정 (CI환경) - 제한적 병렬 실행
+  fullyParallel: true,              // 병렬 실행으로 속도 향상
+  workers: 2,                       // 2개 워커로 적당한 균형 (안정성 vs 속도)
 
   // 🔁 재시도 설정 (CI환경)
   retries: 2,                       // 네트워크 불안정성 대응 2회 재시도
