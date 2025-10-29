@@ -28,7 +28,7 @@ jobs:
   test:
     name: 🧪 Run E2E Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 12
 
     outputs:
       test-results: ${{ steps.test-execution.outputs.results }}
@@ -37,19 +37,34 @@ jobs:
       - name: 📥 Checkout test repository
         uses: actions/checkout@v4
 
-      - name: 🟢 Setup Node.js with caching
+      - name: 🟢 Setup Node.js with enhanced caching
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: 'package-lock.json'
 
-      - name: 📦 Install dependencies with cache
-        run: |
-          # npm ci 대신 더 빠른 설치
-          npm ci --prefer-offline --no-audit --no-fund
+      - name: 📦 Cache node_modules
+        uses: actions/cache@v4
+        id: npm-cache
+        with:
+          path: node_modules
+          key: npm-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            npm-modules-${{ runner.os }}-
 
-      - name: 🎭 Setup Playwright with cache
+      - name: 📦 Install npm dependencies (if cache miss)
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+        run: |
+          echo "📥 npm 의존성 설치 중... (캐시 미스)"
+          npm ci --prefer-offline --no-audit --no-fund --silent
+          echo "✅ npm 의존성 설치 완료"
+
+      - name: 📦 Skip npm install (cache hit)
+        if: steps.npm-cache.outputs.cache-hit == 'true'
+        run: echo "✅ npm 의존성 캐시 적중, 설치 건너뛰기"
+
+      - name: 🎭 Cache Playwright browsers and system dependencies
         uses: actions/cache@v4
         id: playwright-cache
         with:
@@ -57,23 +72,27 @@ jobs:
             ~/.cache/ms-playwright
             ~/Library/Caches/ms-playwright
             %USERPROFILE%\AppData\Local\ms-playwright
-          key: playwright-${{ runner.os }}-v1.40.0
+            /usr/lib/x86_64-linux-gnu/
+            /usr/share/
+          key: playwright-full-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-v2
           restore-keys: |
-            playwright-${{ runner.os }}-
+            playwright-full-${{ runner.os }}-
+            playwright-full-
 
-      - name: 🎭 Install Playwright browsers (optimized)
+      - name: 🎭 Install Playwright browsers and dependencies (if cache miss)
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: |
-          echo "📥 Playwright 브라우저 및 의존성 설치 중..."
-          npx playwright install --with-deps chromium
-          echo "✅ 설치 완료"
+          echo "📥 Playwright 브라우저 및 시스템 의존성 설치 중... (캐시 미스)"
+          npx playwright install chromium --with-deps
+          echo "✅ Playwright 전체 설치 완료"
 
-      - name: 🎭 Install Playwright system dependencies only (if cache hit)
+      - name: 🎭 Verify cached Playwright setup (cache hit)
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: |
-          echo "📦 캐시된 브라우저 발견, 시스템 의존성만 설치 중..."
-          npx playwright install-deps chromium
-          echo "✅ 의존성 설치 완료"
+          echo "✅ Playwright 캐시 적중! 설치 건너뛰기"
+          echo "📋 캐시된 브라우저 확인:"
+          ls -la ~/.cache/ms-playwright/ || echo "브라우저 캐시 확인 불가"
+          echo "✅ 캐시된 설정으로 테스트 준비 완료"
 
       - name: 🧪 Run E2E tests with config
         id: test-execution
@@ -99,20 +118,14 @@ jobs:
           esac
         continue-on-error: true
 
-      - name: 🔍 Check test output directories
+      - name: 🔍 Check test results (optimized)
         if: always()
         run: |
-          echo "=== Current directory structure ==="
-          ls -la
-          echo "=== Looking for test results ==="
-          find . -name "*report*" -o -name "*results*" -type d
-          echo "=== Test results files ==="
-          find . -name "*.html" -o -name "*.json" | head -20
-          echo "=== Playwright report structure ==="
+          echo "=== 테스트 결과 확인 ==="
           if [ -d "playwright-report" ]; then
-            ls -la playwright-report/
+            echo "✅ playwright-report 존재 ($(ls playwright-report/ | wc -l)개 파일)"
           else
-            echo "playwright-report 디렉토리가 없습니다."
+            echo "❌ playwright-report 없음"
           fi
 
       - name: 📢 Notify completion (Success)
