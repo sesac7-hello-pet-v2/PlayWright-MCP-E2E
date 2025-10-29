@@ -578,14 +578,28 @@ jobs:
             git checkout -b release
           fi
 
-          git add docs/
+          # docs 폴더 존재 확인 후 추가
+          if [ -d "docs" ] && [ "$(ls -A docs)" ]; then
+            git add docs/
+          else
+            echo "⚠️ docs 폴더가 비어있거나 존재하지 않음"
+            mkdir -p docs
+            echo "<h1>테스트 실패</h1><p>테스트 실행 중 오류가 발생했습니다.</p>" > docs/index.html
+            git add docs/
+          fi
 
           if git diff --staged --quiet; then
             echo "📝 변경사항 없음, 커밋 건너뛰기"
           else
-            git commit -m "🤖 E2E 테스트 리포트 업데이트 by ${{ github.actor }}"
+            # 안전한 커밋 메시지
+            COMMIT_MSG="🤖 E2E 테스트 리포트 업데이트"
+            git commit -m "$COMMIT_MSG" || {
+              echo "❌ 커밋 실패, 스테이징 상태 확인"
+              git status
+              exit 1
+            }
 
-            # release 브랜치로 푸시
+            # release 브랜치로 푸시 (충돌 해결)
             echo "📤 release 브랜치로 푸시 중..."
             for i in {1..3}; do
               if git push origin release; then
@@ -594,8 +608,14 @@ jobs:
               else
                 echo "⚠️ 푸시 실패, 재시도 $i/3"
                 if [ $i -lt 3 ]; then
+                  # 최신 변경사항 가져오기
                   git fetch origin release
-                  git rebase origin/release
+
+                  # 충돌 없이 덮어쓰기 (테스트 리포트는 항상 최신으로)
+                  git reset --soft origin/release
+                  git add docs/
+                  git commit -m "🤖 E2E 테스트 리포트 업데이트 (덮어쓰기)"
+
                   sleep 2
                 else
                   echo "❌ 푸시 최종 실패"
