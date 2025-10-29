@@ -80,8 +80,7 @@ Hello Pet v2 프로젝트의 네비게이션 기능에 대한 E2E 테스트 계�
 - [ ] **로그인 버튼**: 네비게이션에 로그인 버튼 표시
 - [ ] **로그인 페이지 이동**: 로그인 버튼 클릭 시 `/auth/login` 이동
 - [ ] **제한된 기능**: 로그인이 필요한 페이지 접근 시 처리 (예시 `/feed/create`)
--
-    - [ ] **로그인 처리**: 테스트 계정을 사용해서 로그인 기능 테스트 후 모달 정상 출력 여부
+- [ ] **로그인 처리**: 테스트 계정을 사용해서 로그인 기능 테스트 후 모달 정상 출력 여부
 
 #### 2.2 로그인 상태 테스트
 
@@ -135,14 +134,75 @@ Hello Pet v2 프로젝트의 네비게이션 기능에 대한 E2E 테스트 계�
 
 ## 🛠️ 테스트 구현 방법
 
-### 1. Playwright 설정
+### 1. 구현된 유틸리티 시스템 활용 ✅
+
+```typescript
+// ../util/helpers에서 구현된 헬퍼 클래스들 활용
+import { AuthHelper, PageHelper, SelectorHelper, TEST_ACCOUNTS } from '../util/helpers';
+
+test('네비게이션 테스트 예시', async ({ page }) => {
+  // 페이지 로딩 대기
+  await PageHelper.waitForPageLoad(page);
+
+  // 플렉시블 셀렉터 사용
+  const navSelectors = SelectorHelper.getNavigationSelectors();
+
+  // 테스트 계정으로 로그인
+  await AuthHelper.loginWithTestAccount(page, TEST_ACCOUNTS.primary);
+});
+```
+
+### 2. 현재 테스트 파일 구조 ✅
+
+```
+test/navigation/
+├── README.md                    # 이 파일 (테스트 전략 문서)
+├── Phase1/                      # Phase 1: 기본 네비게이션 테스트
+│   └── (테스트 파일 생성 예정)
+├── Phase2/                      # Phase 2: 인증 상태별 네비게이션 테스트
+│   └── (테스트 파일 생성 예정)
+├── Phase3/                      # Phase 3: 피드 내부 네비게이션 테스트
+│   └── (테스트 파일 생성 예정)
+├── Phase4/                      # Phase 4: 에러 및 예외 상황 테스트
+│   └── (테스트 파일 생성 예정)
+└── Phase5/                      # Phase 5: 성능 및 접근성 테스트
+    └── (테스트 파일 생성 예정)
+```
+
+### 예정된 테스트 파일 구조
+
+```
+Phase1/
+├── basic-navigation.spec.ts     # 기본 헤더 네비게이션
+├── page-access.spec.ts          # 기본 페이지 접근
+└── responsive.spec.ts           # 반응형 네비게이션
+
+Phase2/
+├── auth-navigation.spec.ts      # 인증 상태별 네비게이션
+├── login-flow.spec.ts           # 로그인 플로우 및 모달
+└── logout-flow.spec.ts          # 로그아웃 플로우 및 모달
+
+Phase3/
+├── feed-navigation.spec.ts      # 피드 내부 네비게이션
+└── feed-sidebar.spec.ts         # 피드 사이드바 테스트
+
+Phase4/
+├── error-pages.spec.ts          # 401, 403, 404 페이지
+└── network-errors.spec.ts       # 네트워크 오류 상황
+
+Phase5/
+├── performance.spec.ts          # 페이지 로딩 성능
+└── accessibility.spec.ts        # 접근성 테스트
+```
+
+### 3. Playwright 설정
 
 ```javascript
-// playwright.config.ts
-import {defineConfig} from '@playwright/test';
+// playwright.config.ts (프로젝트 루트)
+import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './test/navigation',
+  testDir: './test',
   timeout: 30000,
   use: {
     baseURL: 'http://localhost:3000',
@@ -152,87 +212,174 @@ export default defineConfig({
 });
 ```
 
-### 2. 테스트 파일 구조
-```
-test/navigation/
-├── README.md                    # 이 파일
-├── basic-navigation.spec.ts     # Phase 1: 기본 네비게이션
-├── auth-navigation.spec.ts      # Phase 2: 인증 상태별 네비게이션
-├── feed-navigation.spec.ts      # Phase 3: 피드 내부 네비게이션
-├── error-handling.spec.ts       # Phase 4: 에러 및 예외 상황
-├── performance.spec.ts          # Phase 5: 성능 및 접근성
-└── helpers/
-    ├── auth-helper.ts          # 로그인/로그아웃 헬퍼
-    ├── navigation-helper.ts    # 네비게이션 공통 함수
-    └── assertions.ts           # 커스텀 assertion
-```
-
-### 3. 테스트 실행 순서
+### 4. 테스트 실행 순서
 
 1. **개발 환경 준비**: `npm run dev` 실행하여 로컬 서버 시작
 2. **Phase 1 실행**: 기본 네비게이션 테스트부터 순차 실행
 3. **Phase 2-5 실행**: 각 단계별 테스트 실행
 4. **리포트 생성**: 테스트 결과 리포트 확인
 
-### 4. 테스트 데이터 관리
+### 5. 테스트 데이터 관리 ✅
 
-- **테스트 사용자**: 테스트용 사용자 계정 미리 생성
-- **Mock 데이터**: API 응답 Mock 데이터 준비
-- **환경 변수**: 테스트 환경별 설정 분리
+- **테스트 계정**: `../util/data/test-accounts.ts`에 4개 계정 정의 완료
+    - primary: `test@test.test` / `test123!@#`
+    - secondary: `test1@test.com` / `!test123`
+    - test2, test3: `test2@test.com`, `test3@test.com` / `!test123`
+- **헬퍼 시스템**: 인증, 페이지 관리, 셀렉터 시스템 구축 완료
+- **플렉시블 셀렉터**: UI 변경에 대응하는 다중 셀렉터 패턴 적용
+
+## 🚀 테스트 실행 방법
+
+### 개별 테스트 실행
+
+```bash
+# 네비게이션 전체 테스트
+npx playwright test test/navigation/
+
+# Phase별 테스트 실행
+npx playwright test test/navigation/Phase1/
+npx playwright test test/navigation/Phase2/
+
+# 특정 테스트 파일 실행
+npx playwright test test/navigation/Phase1/basic-navigation.spec.ts
+
+# 헤드 모드로 실행 (브라우저 화면 보기)
+npx playwright test test/navigation/Phase1/ --headed
+
+# 디버그 모드로 실행
+npx playwright test test/navigation/Phase1/basic-navigation.spec.ts --debug
+```
+
+### 테스트 결과 확인
+
+```bash
+# 리포트 생성 및 열기
+npx playwright show-report
+
+# 스크린샷 및 비디오 확인
+ls test-results/
+```
 
 ## 📊 예상 산출물
 
 1. **테스트 결과 리포트**: HTML 형태의 상세 테스트 결과
-2. **스크린샷**: 실패한 테스트의 스크린샷
+2. **스크린샷**: 실패한 테스트의 스크린샷 (PageHelper 자동 촬영)
 3. **비디오**: 테스트 실행 과정 비디오 (실패 시)
-4. **성능 메트릭**: 페이지 로딩 시간, 메모리 사용량 등
-5. **접근성 리포트**: WCAG 가이드라인 준수 여부
+4. **성능 메트릭**: 페이지 로딩 시간, 메모리 사용량 등 (PageHelper 수집)
+5. **콘솔 로그**: 테스트 진행 상황 및 에러 정보
 
 ## 🔄 지속적인 개선
 
 - **CI/CD 통합**: GitHub Actions에 E2E 테스트 추가
 - **정기 실행**: 주요 브랜치 변경 시 자동 테스트 실행
 - **알림 설정**: 테스트 실패 시 팀에 알림
-- **테스트 유지보수**: UI 변경 시 테스트 코드 업데이트
+- **테스트 유지보수**: 플렉시블 셀렉터로 UI 변경에 자동 대응
 
-## 📁 레거시 README 참고사항
+## 🎯 구현 현황 및 우선순위
 
-## 🧪 핵심 테스트 시나리오
+### ✅ 완료된 작업 (2024.10.29)
 
-### 기본 페이지 이동 플로우
+1. **util 시스템 구축**: 인증, 페이지 관리, 셀렉터 헬퍼 완성
+2. **테스트 계정 관리**: 4개 테스트 계정 정의 및 헬퍼 함수
+3. **navigation README**: 테스트 전략 및 구현 계획 문서화
+4. **플렉시블 셀렉터**: UI 변경에 대응하는 다중 셀렉터 패턴
 
-1. 메인 페이지 (`/`) 로드
-2. "피드" 링크 클릭
-3. 피드 페이지 (`/feed`) 로드 확인
-4. URL 변경 확인
-5. 페이지 제목 업데이트 확인
+### 🔄 다음 단계 (우선순위 순)
 
-### 피드 사이드바 네비게이션
+1. **Phase 1 구현**: basic-navigation.spec.ts 작성 (기본 네비게이션)
+2. **Phase 2 구현**: auth-navigation.spec.ts 작성 (로그인/로그아웃 모달 포함)
+3. **Phase 3 구현**: feed-navigation.spec.ts 작성 (피드 내부 네비게이션)
 
-1. 피드 페이지에서 사이드바 확인
-2. "모든 게시글" 버튼 클릭
-3. "내 게시글" 버튼 클릭 (로그인 필요)
-4. 비로그인 시 "내 게시글" 버튼 비활성화 확인
+### 📋 장기 계획
 
-### 인증 기반 리다이렉트
+- **Phase 4**: 에러 및 예외 상황 테스트
+- **Phase 5**: 성능 및 접근성 테스트
+- **기존 폴더 활용**: about/, auth/, feed/ 등 기능별 세부 테스트
 
-1. 비로그인 상태에서 `/feed/create` 접근
-2. 로그인 페이지로 리다이렉트 확인
-3. 로그인 완료 후 `/feed/create`로 복귀
-4. 정상적으로 게시글 작성 페이지 표시
+## 🧪 핵심 테스트 시나리오 (업데이트)
 
-## 🔧 헬퍼 함수 (예정)
-
-### `navigation-helper.ts`
+### 📍 Phase 1: 기본 페이지 이동 플로우 (구현 예정)
 
 ```typescript
-export class NavigationHelper {
-  async navigateToFeed(): Promise<void>
-  async navigateToCreate(): Promise<void>
-  async navigateToUserFeed(userId: string): Promise<void>
-  async goBack(): Promise<void>
-  async verifyCurrentUrl(expectedUrl: string): Promise<void>
-  async verifyPageTitle(expectedTitle: string): Promise<void>
+// Phase1/basic-navigation.spec.ts
+test('로고 클릭 시 홈페이지로 이동', async ({ page }) => {
+  const logoSelector = SelectorHelper.getNavigationSelectors().logo;
+  await page.click(logoSelector);
+  await PageHelper.verifyCurrentUrl(page, '/');
+});
+
+// Phase1/page-access.spec.ts
+test('메뉴 링크 동작 확인', async ({ page }) => {
+  const navSelectors = SelectorHelper.getNavigationSelectors();
+  await page.click(navSelectors.feedLink);
+  await PageHelper.verifyCurrentUrl(page, /.*\/feed/);
+});
+```
+
+### 📍 Phase 2: 인증 기반 네비게이션 (구현 예정)
+
+```typescript
+// Phase2/login-flow.spec.ts
+test('로그인 처리 및 모달 확인', async ({ page }) => {
+  await AuthHelper.loginWithTestAccount(page, TEST_ACCOUNTS.primary);
+  // 로그인 성공 모달 확인
+  const modalSelectors = SelectorHelper.getModalSelectors();
+  await PageHelper.waitForElement(page, modalSelectors.successAlert);
+});
+
+// Phase2/logout-flow.spec.ts
+test('로그아웃 처리 및 모달 확인', async ({ page }) => {
+  await AuthHelper.logout(page);
+  // 로그아웃 모달 확인
+  const modalSelectors = SelectorHelper.getModalSelectors();
+  await PageHelper.waitForElement(page, modalSelectors.successAlert);
+});
+```
+
+### 📍 Phase 3: 피드 사이드바 네비게이션 (구현 예정)
+
+```typescript
+// Phase3/feed-navigation.spec.ts
+test('피드 내부 네비게이션', async ({ page }) => {
+  const feedNavSelectors = SelectorHelper.getFeedNavigationSelectors();
+  await page.click(feedNavSelectors.allPostsButton);
+  await PageHelper.verifyCurrentUrl(page, '/feed');
+});
+```
+
+## 💡 기술적 특징
+
+### 플렉시블 셀렉터 시스템
+
+```typescript
+// UI 변경에 강한 다중 셀렉터 패턴
+const feedLink = SelectorHelper.createFlexibleSelector([
+  'a[href="/feed"]',              // 기본 링크
+  'a:has-text("피드")',           // 텍스트 기반
+  '.nav-link:has-text("피드")',   // 클래스 + 텍스트
+  '[data-testid="feed-link"]'     // 테스트 ID
+]);
+```
+
+### 자동 대기 및 재시도 메커니즘
+
+```typescript
+// AuthHelper에서 로그인 시 자동 대기
+await Promise.race([
+  page.waitForURL('/', { timeout: 15000 }),           // URL 변경 대기
+  page.waitForSelector('.profile-image', { timeout: 15000 })  // 프로필 표시 대기
+]);
+```
+
+### 강력한 에러 핸들링
+
+```typescript
+// 로그아웃 실패 시 자동 복구
+try {
+  await normalLogout();
+} catch (error) {
+  await page.context().clearCookies();  // 강제 로그아웃
+  await page.reload();
 }
 ```
 
