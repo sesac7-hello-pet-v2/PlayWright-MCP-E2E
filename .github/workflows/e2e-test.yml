@@ -181,9 +181,14 @@ jobs:
           REPORT_STATUS="❌ 리포트 없음"
           REPORT_LINK=""
 
-          if [ -f "docs/index.html" ] && [ "\$(wc -l < docs/index.html)" -gt 5 ]; then
-            REPORT_STATUS="✅ 리포트 사용 가능"
-            REPORT_LINK='<a href="./index.html" class="button">📋 전체 테스트 리포트 보기</a>'
+          if [ -f "docs/index.html" ]; then
+            LINE_COUNT=$(wc -l < docs/index.html)
+            if [ "$LINE_COUNT" -gt 5 ]; then
+              REPORT_STATUS="✅ 리포트 사용 가능"
+              REPORT_LINK='<a href="./index.html" class="button">📋 전체 테스트 리포트 보기</a>'
+            else
+              REPORT_LINK='<span class="button disabled">📋 테스트 리포트 없음</span>'
+            fi
           else
             REPORT_LINK='<span class="button disabled">📋 테스트 리포트 없음</span>'
           fi
@@ -350,7 +355,7 @@ jobs:
           </html>
           EOF
 
-          # Replace placeholders with actual values
+          # Replace placeholders with simple values
           CURRENT_TIME=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
           TRIGGERED_BY="${{ github.event.inputs.triggered_by || github.actor }}"
           TEST_CONFIG="${{ github.event.inputs.test_config || 'fast' }}"
@@ -359,23 +364,31 @@ jobs:
 
           # Update status based on report existence
           if [ -f "docs/report.html" ]; then
-            STATUS_CLASS="success"
             STATUS_TEXT="✅ 리포트 사용 가능"
             REPORT_LINK='<a href="./report.html" class="button">📋 전체 테스트 리포트 보기</a>'
           else
-            STATUS_CLASS="error"
             STATUS_TEXT="❌ 리포트 없음"
             REPORT_LINK='<span class="button disabled">📋 테스트 리포트 없음</span>'
           fi
 
-          # Replace all placeholders
-          sed -i "s/STATUS_PLACEHOLDER/$STATUS_TEXT/g" docs/index.html
-          sed -i "s/REPORT_LINK_PLACEHOLDER/$REPORT_LINK/g" docs/index.html
-          sed -i "s/TRIGGERED_BY_PLACEHOLDER/$TRIGGERED_BY/g" docs/index.html
-          sed -i "s/TEST_CONFIG_PLACEHOLDER/$TEST_CONFIG/g" docs/index.html
-          sed -i "s/RUN_ID_PLACEHOLDER/$RUN_ID/g" docs/index.html
-          sed -i "s|RUN_URL_PLACEHOLDER|$RUN_URL|g" docs/index.html
-          sed -i "s/TIMESTAMP_PLACEHOLDER/$CURRENT_TIME/g" docs/index.html
+          # Use perl for safe replacement (handles special characters better than sed)
+          perl -i -pe "s/STATUS_PLACEHOLDER/\Q$STATUS_TEXT\E/g" docs/index.html
+          perl -i -pe "s/TRIGGERED_BY_PLACEHOLDER/\Q$TRIGGERED_BY\E/g" docs/index.html
+          perl -i -pe "s/TEST_CONFIG_PLACEHOLDER/\Q$TEST_CONFIG\E/g" docs/index.html
+          perl -i -pe "s/RUN_ID_PLACEHOLDER/\Q$RUN_ID\E/g" docs/index.html
+          perl -i -pe "s/TIMESTAMP_PLACEHOLDER/\Q$CURRENT_TIME\E/g" docs/index.html
+
+          # Handle URL separately (no escaping needed)
+          perl -i -pe "s|RUN_URL_PLACEHOLDER|$RUN_URL|g" docs/index.html
+
+          # Handle HTML link separately
+          if [ -f "docs/report.html" ]; then
+            perl -i -pe 's/REPORT_LINK_PLACEHOLDER/<a href="\.\/report\.html" class="button">📋 전체 테스트 리포트 보기<\/a>/g' docs/index.html
+          else
+            perl -i -pe 's/REPORT_LINK_PLACEHOLDER/<span class="button disabled">📋 테스트 리포트 없음<\/span>/g' docs/index.html
+          fi
+
+          echo "✅ HTML placeholders replaced successfully"
 
       - name: 📤 Commit and push test results
         run: |
