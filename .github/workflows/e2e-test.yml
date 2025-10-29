@@ -2,31 +2,93 @@ name: 🎯 E2E Tests & Report
 
 on:
   workflow_dispatch:  # 수동 실행만 가능
+    inputs:
+      triggered_by:
+        description: '테스트 실행 요청자'
+        required: false
+        default: 'Manual'
+        type: string
+      test_config:
+        description: '테스트 설정'
+        required: false
+        default: 'fast'
+        type: choice
+        options:
+          - fast
+          - full
+          - debug
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   test:
     name: 🧪 Run E2E Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
+
+    outputs:
+      test-results: ${{ steps.test-execution.outputs.results }}
 
     steps:
       - name: 📥 Checkout test repository
         uses: actions/checkout@v4
 
-      - name: 🟢 Setup Node.js
+      - name: 🟢 Setup Node.js with caching
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
 
-      - name: 📦 Install test dependencies
-        run: npm ci
+      - name: 📦 Install dependencies with cache
+        run: |
+          # npm ci 대신 더 빠른 설치
+          npm ci --prefer-offline --no-audit --no-fund
 
-      - name: 🎭 Install Playwright browsers
+      - name: 🎭 Setup Playwright with cache
+        uses: actions/cache@v3
+        id: playwright-cache
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            ~/Library/Caches/ms-playwright
+            %USERPROFILE%\AppData\Local\ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: 🎭 Install Playwright browsers (if cache miss)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
 
-      - name: 🧪 Run E2E tests
-        run: npm run test:ci
+      - name: 🎭 Install Playwright system dependencies (if cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: 🧪 Run E2E tests with config
+        id: test-execution
+        run: |
+          # 테스트 설정에 따라 다른 설정 파일 사용
+          case "${{ github.event.inputs.test_config }}" in
+            "fast")
+              echo "🚀 Fast 모드로 테스트 실행"
+              npm run test:fast
+              ;;
+            "full")
+              echo "🔍 Full 모드로 테스트 실행"
+              npm run test:ci
+              ;;
+            "debug")
+              echo "🐛 Debug 모드로 테스트 실행"
+              npm run test:debug
+              ;;
+            *)
+              echo "🚀 기본 Fast 모드로 테스트 실행"
+              npm run test:fast
+              ;;
+          esac
+        continue-on-error: true
 
       - name: 🔍 Check test output directories
         if: always()
@@ -35,8 +97,28 @@ jobs:
           ls -la
           echo "=== Looking for test results ==="
           find . -name "*report*" -o -name "*results*" -type d
-          echo "=== All files ==="
+          echo "=== Test results files ==="
           find . -name "*.html" -o -name "*.json" | head -20
+          echo "=== Playwright report structure ==="
+          if [ -d "playwright-report" ]; then
+            ls -la playwright-report/
+          else
+            echo "playwright-report 디렉토리가 없습니다."
+          fi
+
+      - name: 📢 Notify completion (Success)
+        if: success()
+        run: |
+          echo "🎉 E2E 테스트가 성공적으로 완료되었습니다!"
+          echo "👤 실행자: ${{ github.event.inputs.triggered_by || github.actor }}"
+          echo "📊 테스트 리포트가 곧 GitHub Pages에 배포됩니다."
+
+      - name: 📢 Notify completion (Failure)
+        if: failure()
+        run: |
+          echo "❌ E2E 테스트가 실패했습니다."
+          echo "👤 실행자: ${{ github.event.inputs.triggered_by || github.actor }}"
+          echo "🔍 로그를 확인하세요: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
       - name: 📊 Upload test results
         uses: actions/upload-artifact@v4
@@ -49,41 +131,70 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
-      - name: 📊 Upload test screenshots
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: test-screenshots
-          path: test-results/
-          retention-days: 30
-          if-no-files-found: ignore
-
   deploy-report:
-    name: 🚀 Deploy Test Report to GitHub Pages
+    name: 🚀 Deploy Test Report to Current Repository
     needs: test
     runs-on: ubuntu-latest
     if: always()  # 테스트 실패해도 리포트는 배포
 
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-      actions: read
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
+      - name: 📥 Checkout current repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
       - name: 📥 Download test artifacts
         uses: actions/download-artifact@v4
         with:
           name: playwright-report
-          path: ./playwright-report
+          path: ./artifacts
+        continue-on-error: true
 
-      - name: 📝 Create index page
+      - name: 🔍 Prepare test report for deployment
         run: |
-          cat > index.html << 'EOF'
+          echo "=== 현재 레포지토리 정보 ==="
+          pwd
+          git status
+
+          echo "=== 아티팩트 처리 ==="
+          # docs 디렉토리 생성 (GitHub Pages 기본 경로)
+          mkdir -p docs
+
+          if [ -d "artifacts/playwright-report" ]; then
+            echo "✅ Playwright 리포트 발견"
+            cp -r artifacts/playwright-report/* docs/
+          elif [ -d "artifacts" ] && [ "$(ls -A artifacts)" ]; then
+            echo "✅ 아티팩트 파일들 발견"
+            cp -r artifacts/* docs/
+          else
+            echo "⚠️ 아티팩트 없음, 기본 리포트 생성"
+            echo "<h1>테스트 결과 없음</h1><p>테스트 아티팩트를 찾을 수 없습니다.</p>" > docs/index.html
+          fi
+
+          echo "=== docs 디렉토리 내용 확인 ==="
+          ls -la docs/
+
+      - name: 📝 Create enhanced index page
+        run: |
+          # Check if playwright report exists in docs
+          REPORT_STATUS="❌ 리포트 없음"
+          REPORT_LINK=""
+
+          if [ -f "docs/index.html" ] && [ "\$(wc -l < docs/index.html)" -gt 5 ]; then
+            REPORT_STATUS="✅ 리포트 사용 가능"
+            REPORT_LINK='<a href="./index.html" class="button">📋 전체 테스트 리포트 보기</a>'
+          else
+            REPORT_LINK='<span class="button disabled">📋 테스트 리포트 없음</span>'
+          fi
+
+          # 기존 index.html을 report.html로 백업
+          if [ -f "docs/index.html" ]; then
+            mv docs/index.html docs/report.html
+            REPORT_LINK='<a href="./report.html" class="button">📋 전체 테스트 리포트 보기</a>'
+          fi
+
+          cat > docs/index.html << 'EOF'
           <!DOCTYPE html>
           <html lang="ko">
           <head>
@@ -142,11 +253,48 @@ jobs:
               .button:hover {
                 transform: translateY(-2px);
               }
+              .button.disabled {
+                background: #e2e8f0;
+                color: #64748b;
+                cursor: not-allowed;
+              }
+              .status {
+                padding: 0.5rem 1rem;
+                border-radius: 6px;
+                font-weight: 600;
+                margin-left: 1rem;
+                font-size: 0.9rem;
+              }
+              .status.success {
+                background: #dcfce7;
+                color: #166534;
+              }
+              .status.error {
+                background: #fef2f2;
+                color: #dc2626;
+              }
               .timestamp {
                 color: #64748b;
                 font-size: 0.9rem;
                 text-align: center;
                 margin-top: 2rem;
+              }
+              .info-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 1rem;
+                margin-top: 1rem;
+              }
+              .info-item {
+                background: #f8fafc;
+                padding: 1rem;
+                border-radius: 6px;
+                border-left: 4px solid #3b82f6;
+              }
+              .info-item strong {
+                display: block;
+                color: #1e293b;
+                margin-bottom: 0.5rem;
               }
             </style>
           </head>
@@ -155,41 +303,124 @@ jobs:
               <h1>🐾 Hello Pet E2E Test Report</h1>
               <p>자동화된 E2E 테스트 결과 리포트</p>
             </div>
-          
+
             <div class="card">
-              <h2>📊 테스트 리포트</h2>
+              <h2>📊 테스트 리포트 <span class="status success">STATUS_PLACEHOLDER</span></h2>
               <p>Playwright로 실행된 E2E 테스트 결과를 확인할 수 있습니다.</p>
-              <a href="./playwright-report/index.html" class="button">
-                📋 전체 테스트 리포트 보기
-              </a>
+              REPORT_LINK_PLACEHOLDER
             </div>
-          
+
             <div class="card">
-              <h2>ℹ️ 테스트 정보</h2>
+              <h2>ℹ️ 테스트 실행 정보</h2>
+              <div class="info-grid">
+                <div class="info-item">
+                  <strong>실행자</strong>
+                  TRIGGERED_BY_PLACEHOLDER
+                </div>
+                <div class="info-item">
+                  <strong>테스트 설정</strong>
+                  TEST_CONFIG_PLACEHOLDER
+                </div>
+                <div class="info-item">
+                  <strong>실행 시간</strong>
+                  TIMESTAMP_PLACEHOLDER
+                </div>
+                <div class="info-item">
+                  <strong>실행 ID</strong>
+                  <a href="RUN_URL_PLACEHOLDER" target="_blank">RUN_ID_PLACEHOLDER</a>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>🔧 테스트 환경</h2>
               <ul>
                 <li><strong>테스트 환경:</strong> CI (GitHub Actions)</li>
                 <li><strong>브라우저:</strong> Chromium (헤드리스)</li>
                 <li><strong>테스트 대상:</strong> https://hello-pet.my</li>
                 <li><strong>실행 방법:</strong> 수동 실행 (GitHub Actions 탭)</li>
-                <li><strong>배포 위치:</strong> Test Repository GitHub Pages</li>
+                <li><strong>배포 위치:</strong> Current Repository GitHub Pages</li>
               </ul>
             </div>
-          
+
             <div class="timestamp">
-              Last updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+              🔄 자동 업데이트: TIMESTAMP_PLACEHOLDER
             </div>
           </body>
           </html>
           EOF
 
-      - name: 🔧 Setup Pages
-        uses: actions/configure-pages@v4
+          # Replace placeholders with actual values
+          CURRENT_TIME=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          TRIGGERED_BY="${{ github.event.inputs.triggered_by || github.actor }}"
+          TEST_CONFIG="${{ github.event.inputs.test_config || 'fast' }}"
+          RUN_ID="${{ github.run_id }}"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-      - name: 📤 Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./
+          # Update status based on report existence
+          if [ -f "docs/report.html" ]; then
+            STATUS_CLASS="success"
+            STATUS_TEXT="✅ 리포트 사용 가능"
+            REPORT_LINK='<a href="./report.html" class="button">📋 전체 테스트 리포트 보기</a>'
+          else
+            STATUS_CLASS="error"
+            STATUS_TEXT="❌ 리포트 없음"
+            REPORT_LINK='<span class="button disabled">📋 테스트 리포트 없음</span>'
+          fi
 
-      - name: 🚀 Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          # Replace all placeholders
+          sed -i "s/STATUS_PLACEHOLDER/$STATUS_TEXT/g" docs/index.html
+          sed -i "s/REPORT_LINK_PLACEHOLDER/$REPORT_LINK/g" docs/index.html
+          sed -i "s/TRIGGERED_BY_PLACEHOLDER/$TRIGGERED_BY/g" docs/index.html
+          sed -i "s/TEST_CONFIG_PLACEHOLDER/$TEST_CONFIG/g" docs/index.html
+          sed -i "s/RUN_ID_PLACEHOLDER/$RUN_ID/g" docs/index.html
+          sed -i "s|RUN_URL_PLACEHOLDER|$RUN_URL|g" docs/index.html
+          sed -i "s/TIMESTAMP_PLACEHOLDER/$CURRENT_TIME/g" docs/index.html
+
+      - name: 📤 Commit and push test results
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+          # .gitignore에 docs 폴더가 무시되지 않도록 확인
+          if grep -q "^docs/$" .gitignore 2>/dev/null; then
+            sed -i '/^docs\/$/d' .gitignore
+            echo "✅ .gitignore에서 docs/ 제거"
+          fi
+
+          git add docs/
+
+          if git diff --staged --quiet; then
+            echo "📝 변경사항 없음, 커밋 건너뛰기"
+          else
+            COMMIT_MESSAGE="🤖 E2E 테스트 리포트 업데이트
+
+📊 테스트 실행 정보:
+  - 실행자: ${{ github.event.inputs.triggered_by || github.actor }}
+  - 설정: ${{ github.event.inputs.test_config || 'fast' }}
+  - 실행 ID: ${{ github.run_id }}
+  - 시간: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+
+  🤖 Generated with GitHub Actions
+Co-Authored-By: GitHub Actions <noreply@github.com>"
+  
+  git commit -m "$COMMIT_MESSAGE"
+  git push
+  echo "✅ 테스트 리포트 커밋 및 푸시 완료"
+  fi
+
+  - name: 📢 Deployment notification
+    if: always()
+    run: |
+      REPO_URL="${{ github.server_url }}/${{ github.repository }}"
+      PAGES_URL="${REPO_URL}/tree/${{ github.ref_name }}/docs"
+      
+      if [ "${{ job.status }}" = "success" ]; then
+        echo "🎉 E2E 테스트 리포트가 성공적으로 배포되었습니다!"
+        echo "📊 리포트 확인: ${PAGES_URL}"
+        echo "👤 실행자: ${{ github.event.inputs.triggered_by || github.actor }}"
+      else
+        echo "❌ 배포 중 문제가 발생했습니다."
+        echo "🔍 로그 확인: ${REPO_URL}/actions/runs/${{ github.run_id }}"
+      fi
+

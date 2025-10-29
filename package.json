@@ -9,6 +9,7 @@
     "test:debug": "cross-env PLAYWRIGHT_ENV=debug playwright test",
     "test:ci": "cross-env PLAYWRIGHT_ENV=ci playwright test",
     "test:ui": "playwright test --ui",
+    "test:smoke": "playwright test navigation/Phase1/basic-navigation.spec.ts --config=playwright.config.fast.ts --workers=1",
     "function:fast": "playwright test function/ --config=playwright.config.fast.ts",
     "function:dev": "cross-env PLAYWRIGHT_ENV=dev playwright test function/",
     "function:debug": "cross-env PLAYWRIGHT_ENV=debug playwright test function/",
@@ -22,7 +23,10 @@
     "basic:dev": "cross-env PLAYWRIGHT_ENV=dev playwright test navigation/Phase1/basic-navigation.spec.ts",
     "basic:debug": "cross-env PLAYWRIGHT_ENV=debug playwright test navigation/Phase1/basic-navigation.spec.ts",
     "install": "playwright install",
-    "report": "playwright show-report"
+    "report": "playwright show-report",
+    "docker:build": "docker build -t hello-pet-e2e .",
+    "docker:run": "docker run --rm hello-pet-e2e",
+    "docker:fast": "docker run --rm hello-pet-e2e npm run test:fast"
   },
   "repository": {
     "type": "git",
