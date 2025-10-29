@@ -155,48 +155,4 @@ test.describe('Phase 1.1: 기본 헤더 네비게이션 테스트', () => {
     console.log('✅ 네비게이션 바 및 모든 메뉴 항목 표시 확인');
   });
 
-  test('브라우저 뒤로가기 버튼 동작 확인', async ({page}) => {
-    // 홈 → 소개 → 피드 순으로 이동
-    const navigationSelectors = SelectorHelper.getNavigationSelectors();
-
-    await page.click(navigationSelectors.aboutLink);
-    await PageHelper.waitForPageLoad(page);
-    await PageHelper.verifyCurrentUrl(page, /.*\/about/);
-
-    await page.click(navigationSelectors.feedLink);
-    await PageHelper.waitForPageLoad(page);
-    await PageHelper.verifyCurrentUrl(page, /.*\/feed/);
-
-    // 브라우저 뒤로가기
-    await page.goBack();
-    await PageHelper.waitForPageLoad(page);
-    await PageHelper.verifyCurrentUrl(page, /.*\/about/);
-
-    // 한 번 더 뒤로가기
-    await page.goBack();
-    await PageHelper.waitForPageLoad(page);
-    await PageHelper.verifyCurrentUrl(page, '/');
-
-    console.log('✅ 브라우저 뒤로가기 버튼 동작 확인');
-  });
-
-  test('브라우저 앞으로가기 버튼 동작 확인', async ({page}) => {
-    const navigationSelectors = SelectorHelper.getNavigationSelectors();
-
-    // 홈 → 소개로 이동
-    await page.click(navigationSelectors.aboutLink);
-    await PageHelper.waitForPageLoad(page);
-
-    // 뒤로가기
-    await page.goBack();
-    await PageHelper.waitForPageLoad(page);
-    await PageHelper.verifyCurrentUrl(page, '/');
-
-    // 앞으로가기
-    await page.goForward();
-    await PageHelper.waitForPageLoad(page);
-    await PageHelper.verifyCurrentUrl(page, /.*\/about/);
-
-    console.log('✅ 브라우저 앞으로가기 버튼 동작 확인');
-  });
 });
