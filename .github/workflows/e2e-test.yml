@@ -369,7 +369,7 @@ jobs:
                 <li><strong>브라우저:</strong> Chromium (헤드리스)</li>
                 <li><strong>테스트 대상:</strong> https://hello-pet.my</li>
                 <li><strong>실행 방법:</strong> 수동 실행 (GitHub Actions 탭)</li>
-                <li><strong>배포 위치:</strong> Current Repository GitHub Pages</li>
+                <li><strong>배포 위치:</strong> docs 브랜치 GitHub Pages</li>
               </ul>
             </div>
 
@@ -546,7 +546,7 @@ jobs:
                 <li><strong>브라우저:</strong> Chromium (헤드리스)</li>
                 <li><strong>테스트 대상:</strong> https://hello-pet.my</li>
                 <li><strong>실행 방법:</strong> 수동 실행 (GitHub Actions 탭)</li>
-                <li><strong>배포 위치:</strong> Current Repository GitHub Pages</li>
+                <li><strong>배포 위치:</strong> docs 브랜치 GitHub Pages</li>
               </ul>
             </div>
 
@@ -570,21 +570,25 @@ jobs:
             echo "✅ .gitignore에서 docs/ 제거"
           fi
 
-          # origin/release 브랜치 완전 삭제 및 재생성
-          echo "🗑️ origin/release 브랜치 삭제 중..."
-          git push origin --delete release || echo "⚠️ origin/release 브랜치가 없거나 삭제 실패 (계속 진행)"
+          # origin/docs 브랜치 체크아웃 또는 생성
+          echo "📋 docs 브랜치 설정 중..."
+          git fetch origin docs || echo "⚠️ origin/docs 브랜치 없음"
 
-          # 로컬 release 브랜치도 삭제
-          git branch -D release 2>/dev/null || echo "⚠️ 로컬 release 브랜치 없음"
+          # docs 브랜치가 있는지 확인하고 병합 처리
+          if git ls-remote --heads origin docs | grep -q docs; then
+            echo "✅ origin/docs 브랜치 존재, 체크아웃 및 병합 준비"
+            git checkout -b docs origin/docs
+          else
+            echo "🆕 origin/main에서 새로운 docs 브랜치 생성"
+            git fetch origin main
+            git checkout -b docs origin/main
+          fi
 
-          # origin/main에서 새로운 release 브랜치 생성
-          echo "🆕 origin/main에서 새로운 release 브랜치 생성"
-          git fetch origin main
-          git checkout -b release origin/main
-
-          # docs 폴더 완전 정리 (깨끗한 시작)
-          echo "🧹 기존 docs 폴더 삭제"
-          rm -rf docs/
+          # 기존 테스트 결과 백업 (있다면)
+          if [ -d "docs" ]; then
+            echo "💾 기존 docs 폴더 백업"
+            mv docs docs_backup
+          fi
 
           # 테스트 결과 복사 (아티팩트에서)
           echo "📋 테스트 결과 복사 중..."
@@ -615,10 +619,10 @@ jobs:
               exit 1
             }
 
-            # release 브랜치로 푸시 (새로 생성된 브랜치이므로 충돌 없음)
-            echo "📤 release 브랜치로 푸시 중..."
-            if git push origin release; then
-              echo "✅ release 브랜치에 테스트 리포트 푸시 완료"
+            # docs 브랜치로 푸시 (병합 처리로 충돌 방지)
+            echo "📤 docs 브랜치로 푸시 중..."
+            if git push origin docs; then
+              echo "✅ docs 브랜치에 테스트 리포트 푸시 완료"
             else
               echo "❌ 푸시 실패"
               exit 1
@@ -628,14 +632,14 @@ jobs:
       - name: 📢 Deployment notification
         if: always()
         run: |
-          echo "🎉 E2E 테스트 완료 및 release 브랜치로 푸시!"
+          echo "🎉 E2E 테스트 완료 및 docs 브랜치로 푸시!"
           echo "👤 실행자: ${{ github.event.inputs.triggered_by || github.actor }}"
           echo "📊 실행 ID: ${{ github.run_id }}"
-          echo "🌿 브랜치: release"
+          echo "🌿 브랜치: docs"
           echo ""
           echo "🚀 GitHub Pages 자동 배포가 트리거됩니다:"
-          echo "1. release 브랜치 푸시 감지"
+          echo "1. docs 브랜치 푸시 감지"
           echo "2. '🚀 Deploy to GitHub Pages' 워크플로우 자동 실행"
           echo "3. GitHub Pages 자동 업데이트"
           echo ""
-          echo "📁 테스트 결과: origin/release 브랜치의 docs/ 폴더"
+          echo "📁 테스트 결과: origin/docs 브랜치의 docs/ 폴더"
