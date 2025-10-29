@@ -2,9 +2,7 @@ name: 🎯 E2E Tests & Report
 
 on:
   push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
   workflow_dispatch:  # 수동 실행 가능
 
 jobs:
