@@ -24,6 +24,11 @@ permissions:
   id-token: write
   actions: read
 
+# E2E 테스트 동시 실행 방지 (release 브랜치 충돌 방지)
+concurrency:
+  group: e2e-tests
+  cancel-in-progress: false
+
 jobs:
   test:
     name: 🧪 Run E2E Tests
@@ -569,6 +574,13 @@ jobs:
           echo "📥 release 브랜치 준비 중..."
           git fetch origin release || echo "release 브랜치가 없으면 새로 생성됩니다"
 
+          # 기존 변경사항 스테이징 (덮어쓰기 방지)
+          if [ -f "docs/index.html" ] || [ -f "docs/report.html" ]; then
+            echo "💾 기존 docs 파일들 임시 저장"
+            git add docs/ || true
+            git stash push -m "Temporary save docs before branch switch" || true
+          fi
+
           # release 브랜치로 체크아웃 (없으면 생성)
           if git show-ref --verify --quiet refs/remotes/origin/release; then
             echo "🔄 기존 release 브랜치로 체크아웃"
@@ -576,6 +588,12 @@ jobs:
           else
             echo "🆕 새로운 release 브랜치 생성"
             git checkout -b release
+          fi
+
+          # 스테이시된 변경사항 복원 (있다면)
+          if git stash list | grep -q "Temporary save docs"; then
+            echo "📂 임시 저장된 docs 복원"
+            git stash pop || echo "⚠️ stash pop 실패, 계속 진행"
           fi
 
           # docs 폴더 존재 확인 후 추가
