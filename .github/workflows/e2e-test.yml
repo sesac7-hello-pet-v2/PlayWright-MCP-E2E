@@ -50,22 +50,30 @@ jobs:
           npm ci --prefer-offline --no-audit --no-fund
 
       - name: 🎭 Setup Playwright with cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: playwright-cache
         with:
           path: |
             ~/.cache/ms-playwright
             ~/Library/Caches/ms-playwright
             %USERPROFILE%\AppData\Local\ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-${{ runner.os }}-v1.40.0
+          restore-keys: |
+            playwright-${{ runner.os }}-
 
-      - name: 🎭 Install Playwright browsers (if cache miss)
+      - name: 🎭 Install Playwright browsers (optimized)
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
+        run: |
+          echo "📥 Playwright 브라우저 및 의존성 설치 중..."
+          npx playwright install --with-deps chromium
+          echo "✅ 설치 완료"
 
-      - name: 🎭 Install Playwright system dependencies (if cache hit)
+      - name: 🎭 Install Playwright system dependencies only (if cache hit)
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
+        run: |
+          echo "📦 캐시된 브라우저 발견, 시스템 의존성만 설치 중..."
+          npx playwright install-deps chromium
+          echo "✅ 의존성 설치 완료"
 
       - name: 🧪 Run E2E tests with config
         id: test-execution
@@ -402,14 +410,40 @@ jobs:
             echo "✅ .gitignore에서 docs/ 제거"
           fi
 
+          # 원격 변경사항 가져오기
+          echo "📥 원격 변경사항 확인 중..."
+          git fetch origin main
+
+          # 충돌 방지를 위해 원격과 동기화
+          if ! git diff --quiet HEAD origin/main; then
+            echo "🔄 원격 변경사항 병합 중..."
+            git pull --rebase origin main
+          fi
+
           git add docs/
 
           if git diff --staged --quiet; then
             echo "📝 변경사항 없음, 커밋 건너뛰기"
           else
             git commit -m "🤖 E2E 테스트 리포트 업데이트 by ${{ github.actor }}"
-            git push
-            echo "✅ 테스트 리포트 커밋 및 푸시 완료"
+
+            # 재시도 로직과 함께 푸시
+            echo "📤 변경사항 푸시 중..."
+            for i in {1..3}; do
+              if git push origin main; then
+                echo "✅ 테스트 리포트 커밋 및 푸시 완료"
+                break
+              else
+                echo "⚠️ 푸시 실패, 재시도 $i/3"
+                if [ $i -lt 3 ]; then
+                  git pull --rebase origin main
+                  sleep 2
+                else
+                  echo "❌ 푸시 최종 실패"
+                  exit 1
+                fi
+              fi
+            done
           fi
 
       - name: 📢 Deployment notification
