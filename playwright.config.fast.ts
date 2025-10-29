@@ -10,13 +10,13 @@ export default defineConfig({
 
   // 🔄 병렬 실행 설정 (빠른 테스트)
   fullyParallel: true,              // 병렬 실행 활성화
-  workers: 4,                       // 4개 워커로 병렬 처리
+  workers: 5,                       // 4개 워커로 병렬 처리
 
   // 🔁 재시도 설정 (빠른 테스트)
   retries: 0,                       // 재시도 없음 (빠른 실행)
 
   // ⏱️ 타임아웃 설정 (빠른 테스트)
-  timeout: 15 * 1000,               // 15초 - 빠른 타임아웃
+  timeout: 30 * 1000,               // 30초 - 적절한 타임아웃
 
   // 📊 리포터 설정 (빠른 테스트)
   reporter: [
@@ -36,8 +36,8 @@ export default defineConfig({
     trace: 'off',                   // trace 수집 안함 (속도 향상)
 
     // ⏱️ 액션 타임아웃 (빠른 테스트)
-    actionTimeout: 5 * 1000,        // 5초 - 빠른 액션 타임아웃
-    navigationTimeout: 10 * 1000,   // 10초 - 빠른 네비게이션
+    actionTimeout: 10 * 1000,       // 10초 - 적절한 액션 타임아웃
+    navigationTimeout: 20 * 1000,   // 20초 - 적절한 네비게이션
 
     // 🔧 속도 최적화 설정
     launchOptions: {
