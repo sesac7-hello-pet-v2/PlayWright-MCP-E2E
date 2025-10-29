@@ -10,11 +10,18 @@ export class PageHelper {
    */
   static async waitForPageLoad(page: Page, timeout: number = 30000): Promise<void> {
     try {
-      // 네트워크 idle 대기
-      await page.waitForLoadState('networkidle', {timeout});
+      // DOM 로딩 완료 대기 (기본)
+      await page.waitForLoadState('domcontentloaded', {timeout: timeout / 2});
 
-      // DOM 로딩 완료 대기
-      await page.waitForLoadState('domcontentloaded', {timeout});
+      // 기본 body 요소 확인
+      await page.waitForSelector('body', {timeout: 5000});
+
+      // 네트워크 idle은 짧은 시간만 대기 (피드 페이지 등에서 지속적 로딩 고려)
+      try {
+        await page.waitForLoadState('networkidle', {timeout: 5000});
+      } catch {
+        // networkidle 실패해도 계속 진행
+      }
 
       console.log('✅ 페이지 로딩 완료');
     } catch (error) {

@@ -25,30 +25,30 @@ export class SelectorHelper {
 
       // 메인 메뉴 링크들
       aboutLink: this.createFlexibleSelector([
-        'a[href="/about"]',
-        'a:has-text("소개")',
-        '.nav-link:has-text("소개")',
+        'nav a[href="/about"]',
+        'header a[href="/about"]',
+        '.navigation a[href="/about"]',
         '[data-testid="about-link"]'
       ]),
 
       announcementsLink: this.createFlexibleSelector([
-        'a[href="/announcements"]',
-        'a:has-text("입양게시판")',
-        '.nav-link:has-text("입양게시판")',
+        'nav a[href="/announcements"]',
+        'header a[href="/announcements"]',
+        '.navigation a[href="/announcements"]',
         '[data-testid="announcements-link"]'
       ]),
 
       feedLink: this.createFlexibleSelector([
-        'a[href="/feed"]',
-        'a:has-text("피드")',
-        '.nav-link:has-text("피드")',
+        'nav a[href="/feed"]',
+        'header a[href="/feed"]',
+        '.navigation a[href="/feed"]',
         '[data-testid="feed-link"]'
       ]),
 
       noticesLink: this.createFlexibleSelector([
-        'a[href="/notices"]',
-        'a:has-text("공지사항")',
-        '.nav-link:has-text("공지사항")',
+        'nav a[href="/notices"]',
+        'header a[href="/notices"]',
+        '.navigation a[href="/notices"]',
         '[data-testid="notices-link"]'
       ]),
 

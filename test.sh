@@ -60,10 +60,13 @@ main_menu() {
         read -p "숫자를 입력하세요 (0-5): " choice
 
         case $choice in
-            1) all_tests_menu ;;
+            1) all_tests_menu
+               if [ $? -eq 2 ]; then continue; fi ;;  # 처음으로 가기 처리
             2) echo -e "${YELLOW}기능 테스트는 아직 구현되지 않았습니다.${NC}"; sleep 2 ;;
-            3) navigation_menu ;;
-            4) options_menu ;;
+            3) navigation_menu
+               if [ $? -eq 2 ]; then continue; fi ;;  # 처음으로 가기 처리
+            4) options_menu
+               if [ $? -eq 2 ]; then continue; fi ;;  # 처음으로 가기 처리
             5) run_test "테스트 보고서 보기" "npm run report" ;;
             0) echo -e "${GREEN}👋 안녕히 가세요!${NC}"; exit 0 ;;
             *) echo -e "${RED}❌ 잘못된 선택입니다.${NC}"; sleep 1 ;;
@@ -82,16 +85,18 @@ all_tests_menu() {
         echo "  3. 브라우저 설치"
         echo "  4. 리포트 보기"
         echo ""
+        echo "  -. 처음으로 가기"
         echo "  0. 뒤로가기"
         echo ""
 
-        read -p "숫자를 입력하세요 (0-4): " choice
+        read -p "선택하세요 (0-4, -): " choice
 
         case $choice in
             1) run_test "전체 테스트 (${test_mode})" "npm run test:${test_mode}" ;;
             2) run_test "UI 모드" "npm run test:ui" ;;
             3) run_test "브라우저 설치" "npm run install" ;;
             4) run_test "리포트 보기" "npm run report" ;;
+            "-") return 2 ;;  # 처음으로 가기 신호
             0) return ;;
             *) echo -e "${RED}❌ 잘못된 선택입니다.${NC}"; sleep 1 ;;
         esac
@@ -111,15 +116,18 @@ navigation_menu() {
         echo "  5. Phase 4 테스트 (예정)"
         echo "  6. Phase 5 테스트 (예정)"
         echo ""
+        echo "  -. 처음으로 가기"
         echo "  0. 뒤로가기"
         echo ""
 
-        read -p "숫자를 입력하세요 (0-6): " choice
+        read -p "선택하세요 (0-6, -): " choice
 
         case $choice in
-            1) run_test "전체 네비게이션 테스트 (${test_mode})" "npm run test:${test_mode}" ;;
-            2) phase1_menu ;;
+            1) run_test "전체 네비게이션 테스트 (${test_mode})" "npm run navigation:${test_mode}" ;;
+            2) phase1_menu
+               if [ $? -eq 2 ]; then return 2; fi ;;  # 처음으로 가기 처리
             3|4|5|6) echo -e "${YELLOW}Phase $((choice-1))은 아직 구현되지 않았습니다.${NC}"; sleep 2 ;;
+            "-") return 2 ;;  # 처음으로 가기 신호
             0) return ;;
             *) echo -e "${RED}❌ 잘못된 선택입니다.${NC}"; sleep 1 ;;
         esac
@@ -135,14 +143,16 @@ phase1_menu() {
         echo "  1. Phase 1 전체 테스트"
         echo "  2. 기본 네비게이션만 (basic-navigation.spec.ts)"
         echo ""
+        echo "  -. 처음으로 가기"
         echo "  0. 뒤로가기"
         echo ""
 
-        read -p "숫자를 입력하세요 (0-2): " choice
+        read -p "선택하세요 (0-2, -): " choice
 
         case $choice in
             1) run_test "Phase 1 전체 테스트 (${test_mode})" "npm run phase1:${test_mode}" ;;
             2) run_test "기본 네비게이션 테스트 (${test_mode})" "npm run basic:${test_mode}" ;;
+            "-") return 2 ;;  # 처음으로 가기 신호
             0) return ;;
             *) echo -e "${RED}❌ 잘못된 선택입니다.${NC}"; sleep 1 ;;
         esac
@@ -161,15 +171,17 @@ options_menu() {
         echo "  2. dev (헤드 모드, 300ms 지연)"
         echo "  3. debug (디버그, 1초 지연, 상세 로깅)"
         echo ""
+        echo "  -. 처음으로 가기"
         echo "  0. 뒤로가기"
         echo ""
 
-        read -p "숫자를 입력하세요 (0-3): " choice
+        read -p "선택하세요 (0-3, -): " choice
 
         case $choice in
             1) test_mode="fast"; echo -e "${GREEN}✅ fast 모드로 설정되었습니다.${NC}"; sleep 1 ;;
             2) test_mode="dev"; echo -e "${GREEN}✅ dev 모드로 설정되었습니다.${NC}"; sleep 1 ;;
             3) test_mode="debug"; echo -e "${GREEN}✅ debug 모드로 설정되었습니다.${NC}"; sleep 1 ;;
+            "-") return 2 ;;  # 처음으로 가기 신호
             0) return ;;
             *) echo -e "${RED}❌ 잘못된 선택입니다.${NC}"; sleep 1 ;;
         esac
