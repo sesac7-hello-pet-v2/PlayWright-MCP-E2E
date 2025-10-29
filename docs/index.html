@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hello Pet E2E Test Report</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background: #f8fafc;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+      padding: 2rem;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .header h1 {
+      color: #1e293b;
+      margin: 0;
+      font-size: 2.5rem;
+    }
+    .header p {
+      color: #64748b;
+      margin: 1rem 0 0 0;
+      font-size: 1.1rem;
+    }
+    .card {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      margin-bottom: 2rem;
+    }
+    .card h2 {
+      color: #1e293b;
+      margin-top: 0;
+      font-size: 1.5rem;
+    }
+    .button {
+      display: inline-block;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+      padding: 1rem 2rem;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: transform 0.2s;
+      margin: 0.5rem;
+    }
+    .button:hover {
+      transform: translateY(-2px);
+    }
+    .button.disabled {
+      background: #e2e8f0;
+      color: #64748b;
+      cursor: not-allowed;
+    }
+    .status {
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-weight: 600;
+      margin-left: 1rem;
+      font-size: 0.9rem;
+    }
+    .status.success {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .status.error {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+    .timestamp {
+      color: #64748b;
+      font-size: 0.9rem;
+      text-align: center;
+      margin-top: 2rem;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .info-item {
+      background: #f8fafc;
+      padding: 1rem;
+      border-radius: 6px;
+      border-left: 4px solid #3b82f6;
+    }
+    .info-item strong {
+      display: block;
+      color: #1e293b;
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🐾 Hello Pet E2E Test Report</h1>
+    <p>자동화된 E2E 테스트 결과 리포트</p>
+  </div>
+
+  <div class="card">
+    <h2>📊 테스트 리포트 <span class="status success">\�\�\�\ \�\�\�\�\�\�\�\�\�\ \�\�\�\�\�\�\ \�\�\�\�\�\�</span></h2>
+    <p>Playwright로 실행된 E2E 테스트 결과를 확인할 수 있습니다.</p>
+    <a href="./report.html" class="button">📋 전체 테스트 리포트 보기</a>
+  </div>
+
+  <div class="card">
+    <h2>ℹ️ 테스트 실행 정보</h2>
+    <div class="info-grid">
+      <div class="info-item">
+        <strong>실행자</strong>
+        Manual
+      </div>
+      <div class="info-item">
+        <strong>테스트 설정</strong>
+        full
+      </div>
+      <div class="info-item">
+        <strong>실행 시간</strong>
+        2025\-10\-29\ 09\:51\:01\ UTC
+      </div>
+      <div class="info-item">
+        <strong>실행 ID</strong>
+        <a href="https://github.com/sesac7-hello-pet-v2/PlayWright-MCP-E2E/actions/runs/18903706224" target="_blank">18903706224</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🔧 테스트 환경</h2>
+    <ul>
+      <li><strong>테스트 환경:</strong> CI (GitHub Actions)</li>
+      <li><strong>브라우저:</strong> Chromium (헤드리스)</li>
+      <li><strong>테스트 대상:</strong> https://hello-pet.my</li>
+      <li><strong>실행 방법:</strong> 수동 실행 (GitHub Actions 탭)</li>
+      <li><strong>배포 위치:</strong> Current Repository GitHub Pages</li>
+    </ul>
+  </div>
+
+  <div class="timestamp">
+    🔄 자동 업데이트: 2025\-10\-29\ 09\:51\:01\ UTC
+  </div>
+</body>
+</html>
