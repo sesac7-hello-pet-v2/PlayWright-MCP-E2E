@@ -10,8 +10,8 @@ on:
         type: string
       test_config:
         description: '테스트 설정'
-        required: false
-        default: 'fast'
+        required: true
+        default: 'full'
         type: choice
         options:
           - fast
