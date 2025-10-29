@@ -554,14 +554,17 @@ jobs:
             echo "✅ .gitignore에서 docs/ 제거"
           fi
 
-          # 원격 변경사항 가져오기
-          echo "📥 원격 변경사항 확인 중..."
-          git fetch origin main
+          # release 브랜치 준비
+          echo "📥 release 브랜치 준비 중..."
+          git fetch origin release || echo "release 브랜치가 없으면 새로 생성됩니다"
 
-          # 충돌 방지를 위해 원격과 동기화
-          if ! git diff --quiet HEAD origin/main; then
-            echo "🔄 원격 변경사항 병합 중..."
-            git pull --rebase origin main
+          # release 브랜치로 체크아웃 (없으면 생성)
+          if git show-ref --verify --quiet refs/remotes/origin/release; then
+            echo "🔄 기존 release 브랜치로 체크아웃"
+            git checkout -B release origin/release
+          else
+            echo "🆕 새로운 release 브랜치 생성"
+            git checkout -b release
           fi
 
           git add docs/
@@ -571,16 +574,17 @@ jobs:
           else
             git commit -m "🤖 E2E 테스트 리포트 업데이트 by ${{ github.actor }}"
 
-            # 재시도 로직과 함께 푸시
-            echo "📤 변경사항 푸시 중..."
+            # release 브랜치로 푸시
+            echo "📤 release 브랜치로 푸시 중..."
             for i in {1..3}; do
-              if git push origin main; then
-                echo "✅ 테스트 리포트 커밋 및 푸시 완료"
+              if git push origin release; then
+                echo "✅ release 브랜치에 테스트 리포트 푸시 완료"
                 break
               else
                 echo "⚠️ 푸시 실패, 재시도 $i/3"
                 if [ $i -lt 3 ]; then
-                  git pull --rebase origin main
+                  git fetch origin release
+                  git rebase origin/release
                   sleep 2
                 else
                   echo "❌ 푸시 최종 실패"
@@ -593,5 +597,14 @@ jobs:
       - name: 📢 Deployment notification
         if: always()
         run: |
-          echo "🎉 E2E 테스트 리포트 배포 완료!"
+          echo "🎉 E2E 테스트 완료 및 release 브랜치로 푸시!"
           echo "👤 실행자: ${{ github.event.inputs.triggered_by || github.actor }}"
+          echo "📊 실행 ID: ${{ github.run_id }}"
+          echo "🌿 브랜치: release"
+          echo ""
+          echo "🚀 GitHub Pages 자동 배포가 트리거됩니다:"
+          echo "1. release 브랜치 푸시 감지"
+          echo "2. '🚀 Deploy to GitHub Pages' 워크플로우 자동 실행"
+          echo "3. GitHub Pages 자동 업데이트"
+          echo ""
+          echo "📁 테스트 결과: origin/release 브랜치의 docs/ 폴더"

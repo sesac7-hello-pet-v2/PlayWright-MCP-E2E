@@ -1,0 +1,61 @@
+name: 🚀 Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - release  # release 브랜치에 푸시될 때 자동 배포
+    paths:
+      - 'docs/**'  # docs 폴더 변경시에만 트리거
+  workflow_dispatch:  # 수동 실행도 가능
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: 🚀 Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    if: always()
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: 📥 Checkout release branch
+        uses: actions/checkout@v4
+        with:
+          ref: release  # release 브랜치 체크아웃
+
+      - name: 🔍 Verify docs folder
+        run: |
+          echo "=== docs 폴더 내용 확인 ==="
+          ls -la docs/ || echo "docs 폴더가 없습니다"
+          echo "=== 배포할 파일 목록 ==="
+          find docs/ -type f -name "*.html" -o -name "*.css" -o -name "*.js" | head -10
+
+      - name: 🔧 Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: 📤 Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./docs
+
+      - name: 🚀 Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: 📢 Deployment notification
+        run: |
+          echo "🎉 GitHub Pages 배포 완료!"
+          echo "📊 리포트 URL: ${{ steps.deployment.outputs.page_url }}"
+          echo "🕐 배포 시간: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
